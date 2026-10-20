@@ -100,13 +100,8 @@ docker build -f devops/Dockerfile --target runtime -t <acr>.azurecr.io/agent:<ta
 docker push <acr>.azurecr.io/agent:<tag>
 ```
 
-O construir directo en Azure, sin Docker local:
-
-```bash
-az acr build --registry <acr> --file devops/Dockerfile --target runtime --image agent:<tag> .
-```
-
-En Container Apps las variables `FOUNDRY_*` se configuran como env vars del contenedor; la imagen no lleva `.env`.
+Esto es para una prueba puntual: el camino normal es el pipeline (ver [Deploy](#deploy)).
+La imagen no lleva `.env`; en Azure la configuración llega como env vars de la Container App.
 
 ## devops/
 
@@ -116,6 +111,57 @@ En Container Apps las variables `FOUNDRY_*` se configuran como env vars del cont
 | `Dockerfile.dockerignore` | exclusiones del contexto de build (BuildKit lo toma por estar junto al Dockerfile) |
 | `compose.yaml` | agente contra Foundry real + servicio de tests |
 | `compose.mock.yaml` | overlay del día 1 con el Foundry simulado |
+
+## Deploy
+
+`.github/workflows/ci-cd.yml`, en cada push a `main` / `solution` o tag `t*-v*`:
+
+1. **test**: pytest dentro del stage `test` del Dockerfile (también en cada PR).
+2. **deploy**: login a Azure por **OIDC** → build del stage `runtime` → push a ACR → `az containerapp update` con la imagen nueva y sus env vars.
+
+Si la variable `ACR_NAME` no está definida, solo corre **test**.
+
+### Dónde vive cada cosa
+
+| Contexto | Qué | Dónde | Quién lo define |
+|---|---|---|---|
+| Local | `FOUNDRY_*`, key de pruebas | `.env` (no se versiona) | cada participante |
+| CI | IDs para OIDC y nombres de recursos (no son secretos) | GitHub → Settings → Secrets and variables → Actions → **Variables** | plataforma, una vez |
+| Azure | configuración no secreta (`FOUNDRY_ENDPOINT`, …) | env vars de la Container App | el pipeline, en cada deploy |
+| Azure | **secretos** (p. ej. `FOUNDRY_API_KEY`) | **Key Vault** → secret de la Container App que referencia a Key Vault → env var `secretref:` | plataforma, una vez |
+
+**GitHub Secrets queda vacío.** OIDC no usa contraseñas, y el valor de una key nunca pasa por el pipeline:
+el workflow solo conoce la URI del secret en Key Vault, y la Container App lo lee con su Managed Identity.
+Rotar la key es cambiarla en Key Vault; no requiere tocar el repo ni la imagen.
+
+Con `FOUNDRY_AUTH_PROVIDER=entra_id` (recomendado) no hay ningún secret: la Managed Identity entra directo a Foundry.
+
+### Variables del repo en GitHub
+
+| Variable | Valor |
+|---|---|
+| `AZURE_CLIENT_ID` | client id de la app registration de CI (credencial federada) |
+| `AZURE_TENANT_ID` | tenant de Entra ID |
+| `AZURE_SUBSCRIPTION_ID` | suscripción del sandbox |
+| `ACR_NAME` | nombre del Azure Container Registry |
+| `RESOURCE_GROUP` | resource group del equipo (`rg-team-NN`) |
+| `CONTAINER_APP` | Container App del agente |
+| `FOUNDRY_ENDPOINT` | `https://<recurso>.openai.azure.com` |
+| `FOUNDRY_DEPLOYMENT` | deployment del modelo, p. ej. `gpt-5-mini` |
+| `FOUNDRY_AUTH_PROVIDER` | `entra_id` (recomendado) o `api_key` |
+| `APP_IDENTITY_CLIENT_ID` | client id de la Managed Identity del equipo; llega al contenedor como `AZURE_CLIENT_ID` |
+| `APP_IDENTITY_ID` | resource id de esa Managed Identity (solo con `api_key`) |
+| `FOUNDRY_API_KEY_KV_URI` | `https://<kv>.vault.azure.net/secrets/foundry-api-key` (solo con `api_key`) |
+
+### Setup único (plataforma, antes de la semana 1)
+
+1. **CI → Azure (OIDC):** app registration con credencial federada para el subject
+   `repo:<owner>/<repo>:environment:sandbox`, y environment `sandbox` creado en GitHub.
+   Roles: **AcrPush** en el ACR y **Contributor** solo en `rg-team-NN`.
+2. **Container App → Azure (Managed Identity del equipo):** asignada a la Container App, con
+   **Cognitive Services OpenAI User** en Foundry y **AcrPull** en el ACR (`az containerapp registry set --identity ...`).
+3. **Solo si Foundry usa `api_key`:** guardar la key una vez en Key Vault (portal o `az keyvault secret set ... --file`,
+   para que el valor no quede en el historial de la terminal) y dar **Key Vault Secrets User** a la Managed Identity.
 
 ## Capas
 

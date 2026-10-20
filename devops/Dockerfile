@@ -7,7 +7,8 @@
 ARG PYTHON_IMAGE=python:3.12-alpine
 
 FROM ${PYTHON_IMAGE} AS base
-COPY --from=ghcr.io/astral-sh/uv:0.11.28 /uv /bin/uv
+# uv desde PyPI (no desde ghcr.io): una fuente menos a habilitar en redes corporativas
+RUN pip install --no-cache-dir --disable-pip-version-check uv==0.11.28
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     UV_PYTHON_DOWNLOADS=0 \
