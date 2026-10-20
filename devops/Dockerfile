@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
 # Stages: base -> builder (deps de runtime) -> test (pytest) | runtime (imagen mínima para ACR)
-#   docker build --target test -t agent:test .      && docker run --rm agent:test
-#   docker build --target runtime -t agent:latest .
+# Contexto = raíz del repo; las exclusiones están en devops/Dockerfile.dockerignore.
+#   docker build -f devops/Dockerfile --target test -t agent:test .
+#   docker build -f devops/Dockerfile --target runtime -t agent:local .
 
 ARG PYTHON_IMAGE=python:3.12-alpine
 
