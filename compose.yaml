@@ -1,5 +1,6 @@
 # Pruebas locales en Docker:
-#   docker compose run --rm tests        -> pytest dentro del contenedor
+#   docker compose run --rm --build tests   -> pytest dentro del contenedor (--build: tests está en un profile
+#                                              y `compose build` no lo reconstruye solo)
 #   docker compose up --build agent      -> agente en :8000 contra el mock de Foundry
 services:
   mock-foundry:

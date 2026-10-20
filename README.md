@@ -75,7 +75,7 @@ Busca los `TODO S1` / `TODO S2` en el código.
 | `runtime` | imagen para ACR | solo el venv; usuario no root, healthcheck en `/health` |
 
 ```bash
-docker compose run --rm tests          # pytest dentro del contenedor
+docker compose run --rm --build tests  # pytest dentro del contenedor
 docker compose up --build agent        # agente en :8000 contra el mock de Foundry
 ```
 
