@@ -1,0 +1,22 @@
+# Pruebas locales en Docker:
+#   docker compose run --rm tests        -> pytest dentro del contenedor
+#   docker compose up --build agent      -> agente en :8000 contra el mock de Foundry
+services:
+  mock-foundry:
+    build: { context: ., target: test }
+    command: ["python", "dev/mock_foundry.py"]
+    environment:
+      MOCK_HOST: 0.0.0.0
+
+  agent:
+    build: { context: ., target: runtime }
+    ports: ["8000:8000"]
+    environment:
+      FOUNDRY_ENDPOINT: http://mock-foundry:8100
+      FOUNDRY_AUTH_PROVIDER: api_key
+      FOUNDRY_API_KEY: fake-token
+    depends_on: [mock-foundry]
+
+  tests:
+    build: { context: ., target: test }
+    profiles: ["test"]

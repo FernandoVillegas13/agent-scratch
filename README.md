@@ -64,6 +64,33 @@ Busca los `TODO S1` / `TODO S2` en el código.
 
 **Gate T1:** `/chat` responde con output válido, tests en verde y 2 trade-offs de modelo y costo explicados.
 
+## Docker
+
+`Dockerfile` multi-stage sobre `python:3.12-alpine`:
+
+| Stage | Para qué | Contiene |
+|---|---|---|
+| `builder` | instalar dependencias con `uv` | venv de runtime |
+| `test` | correr pytest en contenedor | venv + dev, `tests/`, `dev/` |
+| `runtime` | imagen para ACR | solo el venv; usuario no root, healthcheck en `/health` |
+
+```bash
+docker compose run --rm tests          # pytest dentro del contenedor
+docker compose up --build agent        # agente en :8000 contra el mock de Foundry
+```
+
+Publicar en Azure Container Registry:
+
+```bash
+az acr login --name <acr>
+docker build --target runtime -t <acr>.azurecr.io/agent:<tag> .
+docker push <acr>.azurecr.io/agent:<tag>
+```
+
+O construir directo en Azure, sin Docker local: `az acr build --registry <acr> --target runtime -t agent:<tag> .`
+
+En producción las variables `FOUNDRY_*` llegan como env vars del contenedor (Container Apps), no por `.env`.
+
 ## Ramas y tags
 
 - `main`: este arquetipo.

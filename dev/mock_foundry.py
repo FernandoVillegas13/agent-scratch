@@ -7,6 +7,7 @@ Responde {"intent", "answer"} detectando la intención por palabras clave.
 """
 
 import json
+import os
 import time
 from uuid import uuid4
 
@@ -56,4 +57,4 @@ async def chat_completions(request: Request, authorization: str = Header(default
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8100)
+    uvicorn.run(app, host=os.environ.get("MOCK_HOST", "127.0.0.1"), port=8100)
