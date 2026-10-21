@@ -7,7 +7,7 @@ Cada semana del workshop agrega un incremento a este mismo agente hasta la v1.0.
 
 - Python 3.12 y [uv](https://docs.astral.sh/uv/)
 - Docker Desktop (para correr en contenedor y publicar en ACR)
-- Acceso a un recurso de Microsoft Foundry con un deployment de `gpt-5-mini` (salvo el día 1, que usa el mock)
+- Acceso a un recurso de Microsoft Foundry con un deployment de `gpt-5-mini` (desde la sesión 2)
 
 ## Configuración
 
@@ -15,36 +15,56 @@ Cada semana del workshop agrega un incremento a este mismo agente hasta la v1.0.
 copy .env.example .env
 ```
 
-| Variable | Valor |
-|---|---|
-| `FOUNDRY_ENDPOINT` | `https://<tu-recurso>.openai.azure.com` |
-| `FOUNDRY_DEPLOYMENT` | nombre del deployment en Foundry |
-| `FOUNDRY_AUTH_PROVIDER` | `api_key` o `entra_id` |
-| `FOUNDRY_API_KEY` | la key del recurso (solo con `api_key`) |
+`.env.example` viene apuntando al mock de la sesión 1. En la sesión 2 se cambia por Foundry:
 
-Con `entra_id` se usa `DefaultAzureCredential`: en local toma tu `az login` y desplegado la Managed Identity.
-Requiere el rol **Cognitive Services OpenAI User** en el recurso.
+| Variable | Sesión 1 (mock) | Sesión 2 (Foundry) |
+|---|---|---|
+| `FOUNDRY_ENDPOINT` | `http://127.0.0.1:8100` | `https://<tu-recurso>.openai.azure.com` |
+| `FOUNDRY_DEPLOYMENT` | `gpt-5-mini` | nombre del deployment en Foundry |
+| `FOUNDRY_AUTH_PROVIDER` | `api_key` | `api_key` |
+| `FOUNDRY_API_KEY` | cualquier valor (`fake-token`) | la key del recurso (Foundry → Overview → Keys) |
+
+`entra_id` (`DefaultAzureCredential`: `az login` en local, Managed Identity desplegado) queda para el deploy;
+requiere el rol **Cognitive Services OpenAI User** en el recurso.
 
 ## Arranque
 
-Todas las formas dan el mismo agente en http://127.0.0.1:8000 (Swagger en `/docs`, smoke test en `/health`).
-
-### 1. Local con uv
+El agente queda en http://127.0.0.1:8000 (Swagger en `/docs`, smoke test en `/health`).
 
 ```bash
 uv sync
-uv run uvicorn agent.infrastructure.bootstrap:create_app --factory --reload
 uv run pytest
 ```
 
-**Día 1 sin Azure (mock):** en otra terminal levanta el Foundry simulado y en `.env` pon
-`FOUNDRY_ENDPOINT=http://127.0.0.1:8100` y cualquier `FOUNDRY_API_KEY`.
+### Sesión 1 · mock, sin Azure
+
+Terminal 1, el Foundry simulado:
 
 ```bash
 uv run python dev/mock_foundry.py
 ```
 
-### 2. Docker manual
+Terminal 2, el agente (con el `.env` tal cual sale de `.env.example`):
+
+```bash
+uv run uvicorn agent.infrastructure.bootstrap:create_app --factory --reload
+```
+
+### Sesión 2 · Foundry con api_key
+
+Sin mock. En `.env` pon `FOUNDRY_ENDPOINT`, `FOUNDRY_DEPLOYMENT` y `FOUNDRY_API_KEY` de tu recurso, y arranca igual:
+
+```bash
+uv run uvicorn agent.infrastructure.bootstrap:create_app --factory --reload
+```
+
+La key solo vive en tu `.env` (no se versiona). No la pegues en el código, en el chat ni en un commit.
+
+## Más adelante · contenedor y Azure
+
+Fuera de la semana 1: los mismos dos backends, ahora en Docker y luego en Azure.
+
+### Docker manual
 
 Construir las imágenes (contexto = raíz del repo):
 
@@ -67,7 +87,7 @@ docker run --rm -p 8000:8000 --env-file .env agent:local
 
 En un contenedor local no hay `az login`: usa `FOUNDRY_AUTH_PROVIDER=api_key`. `entra_id` aplica al desplegarlo con Managed Identity.
 
-**Día 1 sin Azure (mock):** mock y agente en una red de Docker.
+**Con el mock:** mock y agente en una red de Docker.
 
 ```bash
 docker network create agent-net
@@ -77,14 +97,14 @@ docker run --rm -p 8000:8000 --network agent-net -e FOUNDRY_ENDPOINT=http://mock
 
 Al terminar: `docker stop mock-foundry` y `docker network rm agent-net`.
 
-### 3. Docker compose
+### Docker compose
 
 ```bash
 docker compose -f devops/compose.yaml up --build agent
 docker compose -f devops/compose.yaml run --rm --build tests
 ```
 
-**Día 1 sin Azure (mock):** se suma el overlay `compose.mock.yaml`, que levanta el mock y apunta el agente a él.
+**Con el mock:** se suma el overlay `compose.mock.yaml`, que levanta el mock y apunta el agente a él.
 
 ```bash
 docker compose -f devops/compose.yaml -f devops/compose.mock.yaml up --build agent
@@ -92,7 +112,7 @@ docker compose -f devops/compose.yaml -f devops/compose.mock.yaml up --build age
 
 `tests` está en un profile, por eso lleva `--build`: `compose build` no lo reconstruye solo.
 
-### 4. Publicar en Azure Container Registry
+### Publicar en Azure Container Registry
 
 ```bash
 az acr login --name <acr>
@@ -110,7 +130,7 @@ La imagen no lleva `.env`; en Azure la configuración llega como env vars de la 
 | `Dockerfile` | multi-stage sobre `python:3.12-alpine`: `builder` (deps con uv) → `test` (pytest) / `runtime` (imagen para ACR: solo el venv, usuario no root, healthcheck en `/health`) |
 | `Dockerfile.dockerignore` | exclusiones del contexto de build (BuildKit lo toma por estar junto al Dockerfile) |
 | `compose.yaml` | agente contra Foundry real + servicio de tests |
-| `compose.mock.yaml` | overlay del día 1 con el Foundry simulado |
+| `compose.mock.yaml` | overlay con el Foundry simulado (sesión 1) |
 
 ## Deploy
 
@@ -196,7 +216,7 @@ Regla: `infrastructure → application → domain`, nunca al revés.
 
 Busca los `TODO S1` / `TODO S2` en el código.
 
-**S1**
+**S1 · contra el mock** (tag `t1-s1`)
 - [ ] `domain/models.py`: `AgentReply` como contrato del structured output
 - [ ] `infrastructure/llm/credentials.py`: credencial según `FOUNDRY_AUTH_PROVIDER`
 - [ ] `infrastructure/llm/foundry_chat_model.py`: `complete()` con `chat.completions.parse`
@@ -204,7 +224,8 @@ Busca los `TODO S1` / `TODO S2` en el código.
 - [ ] `infrastructure/api/`: `ChatRequest`, `ChatResponse` y `POST /chat`
 - [ ] `infrastructure/bootstrap.py`: conectar todo
 
-**S2**
+**S2 · contra Foundry con api_key** (tag `t1-s2`)
+- [ ] `.env` apuntando a tu recurso de Foundry; las 5 conversaciones contra el modelo real
 - [ ] Historial por sesión, sin guardar turnos fallidos
 - [ ] `domain/errors.py`: timeout, rate limit y salida inválida → HTTP 504 / 429 / 502
 - [ ] `Usage`: latencia y tokens por turno
@@ -215,6 +236,17 @@ Busca los `TODO S1` / `TODO S2` en el código.
 
 ## Ramas y tags
 
-- `main`: este arquetipo.
-- `solution`: solución de referencia, con un tag por semana: `t1-v0.1`, `t2-v0.2`, …
-- `git diff main t1-v0.1` muestra lo que se construye en la semana 1.
+| Ref | Qué es |
+|---|---|
+| `main` | arquetipo con los `TODO`; punto de partida de todos |
+| `solution` | solución de referencia; avanza una sesión por commit |
+| `tN-sM` | fin de la sesión M del tema N: `t1-s1` (mock), `t1-s2` (Foundry api_key) |
+| `tN-vX` | cierre del tema N: `t1-v0.1` = `t1-s2`; luego `t2-v0.2`, … |
+
+```bash
+git diff main t1-s1      # lo que se construye en la sesión 1
+git diff t1-s1 t1-s2     # lo que agrega la sesión 2
+git switch -c mi-avance t1-s1   # ponerse al día desde el fin de la sesión 1
+```
+
+Los cambios de `main` (infra, docs) se mergean a `solution`; los tags no se mueven una vez publicados.

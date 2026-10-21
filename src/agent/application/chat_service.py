@@ -12,6 +12,6 @@ class ChatService:
 
     def handle(self, session_id: str, message: str):
         # TODO S1: armar [system, ...últimos max_turns del historial, user], llamar a self.model.complete
-        #          y devolver la respuesta tipada.
-        # TODO S2: guardar el turno en el historial solo si el modelo respondió.
+        #          y devolver el AgentReply.
+        # TODO S2: guardar el turno en el historial solo si el modelo respondió y devolver AgentTurn.
         raise NotImplementedError("TODO S1: ChatService.handle")
