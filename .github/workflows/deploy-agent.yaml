@@ -2,7 +2,7 @@
 # Sin secretos en GitHub: login a Azure por OIDC; si Foundry usa api_key, la key vive en Key Vault.
 # Configuración (Settings -> Secrets and variables -> Actions -> Variables): ver README, sección Deploy.
 # Si ACR_NAME no está definida, solo corre el job de tests.
-name: ci-cd
+name: deploy-agent
 
 on:
   push:
@@ -36,7 +36,8 @@ jobs:
       ACR_NAME: ${{ vars.ACR_NAME }}
       RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
       CONTAINER_APP: ${{ vars.CONTAINER_APP }}
-      IMAGE: ${{ vars.ACR_NAME }}.azurecr.io/agent:${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
+      # ACR compartido, un repositorio por equipo (p. ej. team-01/agent); por defecto "agent"
+      IMAGE: ${{ vars.ACR_NAME }}.azurecr.io/${{ vars.IMAGE_REPOSITORY || 'agent' }}:${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
       FOUNDRY_ENDPOINT: ${{ vars.FOUNDRY_ENDPOINT }}
       FOUNDRY_DEPLOYMENT: ${{ vars.FOUNDRY_DEPLOYMENT }}
       FOUNDRY_AUTH_PROVIDER: ${{ vars.FOUNDRY_AUTH_PROVIDER }}

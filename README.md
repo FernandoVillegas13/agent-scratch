@@ -114,7 +114,7 @@ La imagen no lleva `.env`; en Azure la configuración llega como env vars de la 
 
 ## Deploy
 
-`.github/workflows/ci-cd.yml`, en cada push a `main` / `solution` o tag `t*-v*`:
+`.github/workflows/deploy-agent.yaml`, en cada push a `main` / `solution` o tag `t*-v*`:
 
 1. **test**: pytest dentro del stage `test` del Dockerfile (también en cada PR).
 2. **deploy**: login a Azure por **OIDC** → build del stage `runtime` → push a ACR → `az containerapp update` con la imagen nueva y sus env vars.
@@ -143,7 +143,8 @@ Con `FOUNDRY_AUTH_PROVIDER=entra_id` (recomendado) no hay ningún secret: la Man
 | `AZURE_CLIENT_ID` | client id de la app registration de CI (credencial federada) |
 | `AZURE_TENANT_ID` | tenant de Entra ID |
 | `AZURE_SUBSCRIPTION_ID` | suscripción del sandbox |
-| `ACR_NAME` | nombre del Azure Container Registry |
+| `ACR_NAME` | nombre del Azure Container Registry, sin `.azurecr.io` (p. ej. `acrworkshop`) |
+| `IMAGE_REPOSITORY` | repositorio del equipo dentro del ACR (p. ej. `team-01/agent`); si no se define, `agent` |
 | `RESOURCE_GROUP` | resource group del equipo (`rg-team-NN`) |
 | `CONTAINER_APP` | Container App del agente |
 | `FOUNDRY_ENDPOINT` | `https://<recurso>.openai.azure.com` |
