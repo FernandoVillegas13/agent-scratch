@@ -18,6 +18,8 @@ Cada semana del workshop agrega un incremento a este mismo agente hasta la v1.0.
 copy .env.example .env
 ```
 
+`DOMAIN` elige el dominio del equipo y, con él, su system prompt (`infrastructure/prompts/<DOMAIN>.md`): `fraude`, `tarifario`, `tarjetas`, `prestamos` o `atencion`.
+
 `.env.example` viene apuntando al mock de la sesión 1. En la sesión 2 se cambia por Foundry con **Entra ID**:
 
 | Variable | Sesión 1 (mock) | Sesión 2 (Foundry) | Alternativa: token temporal |
