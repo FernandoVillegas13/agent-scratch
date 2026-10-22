@@ -5,7 +5,7 @@ from agent.infrastructure.config.settings import FoundrySettings, Settings
 
 
 def test_health():
-    settings = Settings(_env_file=None, foundry=FoundrySettings(_env_file=None))
+    settings = Settings(_env_file=None, foundry=FoundrySettings(_env_file=None, auth_provider="api_key"))
     response = TestClient(create_app(settings=settings)).get("/health")
     assert response.json() == {"status": "ok"}
 

@@ -18,9 +18,9 @@ Cada semana del workshop agrega un incremento a este mismo agente hasta la v1.0.
 copy .env.example .env
 ```
 
-`.env.example` viene apuntando al mock de la sesión 1. En la sesión 2 se cambia por Foundry con **Entra ID**, que es el provider por defecto desde ahí:
+`.env.example` viene apuntando al mock de la sesión 1. En la sesión 2 se cambia por Foundry con **Entra ID**:
 
-| Variable | Sesión 1 (mock) | Sesión 2 (Foundry, por defecto) | Alternativa: token temporal |
+| Variable | Sesión 1 (mock) | Sesión 2 (Foundry) | Alternativa: token temporal |
 |---|---|---|---|
 | `FOUNDRY_ENDPOINT` | `http://127.0.0.1:8100` | `https://<recurso>.openai.azure.com` | igual |
 | `FOUNDRY_DEPLOYMENT` | `gpt-5-mini` | nombre del deployment en Foundry | igual |
@@ -28,7 +28,7 @@ copy .env.example .env
 | `FOUNDRY_API_KEY` | cualquier valor (`fake-token`) | vacío | token de Cloud Shell (dura 60–90 min) |
 
 Con `entra_id`, el agente usa `DefaultAzureCredential`: en local toma tu `az login` y desplegado, la Managed Identity.
-El token se renueva solo y no hay ningún secreto en `.env`. `entra_id` es también el valor por defecto en `settings.py`: si `FOUNDRY_AUTH_PROVIDER` no está definido, se usa Entra ID.
+El token se renueva solo y no hay ningún secreto en `.env`. `FOUNDRY_AUTH_PROVIDER` es obligatorio: no tiene valor por defecto, así que siempre se define en `.env`.
 La alternativa es para quien no pueda instalar Azure CLI. Se genera en el portal: Cloud Shell → `az account get-access-token --resource https://cognitiveservices.azure.com --query accessToken -o tsv`.
 Las keys fijas del recurso no vencen, así que no se usan en el workshop.
 
