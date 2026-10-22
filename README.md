@@ -43,6 +43,12 @@ uv sync
 uv run pytest
 ```
 
+Para conversar con el agente desde la consola (maneja tildes y sesiones, sin pelear con PowerShell):
+
+```bash
+uv run python dev/chat.py
+```
+
 ### Sesión 1 · mock, sin Azure
 
 Terminal 1, el Foundry simulado:
