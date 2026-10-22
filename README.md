@@ -7,7 +7,10 @@ Cada semana del workshop agrega un incremento a este mismo agente hasta la v1.0.
 
 - Python 3.12 y [uv](https://docs.astral.sh/uv/)
 - Docker Desktop (para correr en contenedor y publicar en ACR)
-- Acceso a un recurso de Microsoft Foundry con un deployment de `gpt-5-mini` (desde la sesión 2)
+- Desde la sesión 2:
+  - [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) (`winget install Microsoft.AzureCLI`), para `az login`
+  - acceso a un recurso de Microsoft Foundry con un deployment de `gpt-5-mini`
+  - el rol **Cognitive Services OpenAI User** en ese recurso, normalmente heredado del grupo del workshop
 
 ## Configuración
 
@@ -15,17 +18,19 @@ Cada semana del workshop agrega un incremento a este mismo agente hasta la v1.0.
 copy .env.example .env
 ```
 
-`.env.example` viene apuntando al mock de la sesión 1. En la sesión 2 se cambia por Foundry:
+`.env.example` viene apuntando al mock de la sesión 1. En la sesión 2 se cambia por Foundry con **Entra ID**, que es el provider por defecto desde ahí:
 
-| Variable | Sesión 1 (mock) | Sesión 2 (Foundry) |
-|---|---|---|
-| `FOUNDRY_ENDPOINT` | `http://127.0.0.1:8100` | `https://<tu-recurso>.openai.azure.com` |
-| `FOUNDRY_DEPLOYMENT` | `gpt-5-mini` | nombre del deployment en Foundry |
-| `FOUNDRY_AUTH_PROVIDER` | `api_key` | `api_key` |
-| `FOUNDRY_API_KEY` | cualquier valor (`fake-token`) | la key del recurso (Foundry → Overview → Keys) |
+| Variable | Sesión 1 (mock) | Sesión 2 (Foundry, por defecto) | Alternativa: token temporal |
+|---|---|---|---|
+| `FOUNDRY_ENDPOINT` | `http://127.0.0.1:8100` | `https://<recurso>.openai.azure.com` | igual |
+| `FOUNDRY_DEPLOYMENT` | `gpt-5-mini` | nombre del deployment en Foundry | igual |
+| `FOUNDRY_AUTH_PROVIDER` | `api_key` | `entra_id` | `api_key` |
+| `FOUNDRY_API_KEY` | cualquier valor (`fake-token`) | vacío | token de Cloud Shell (dura 60–90 min) |
 
-`entra_id` (`DefaultAzureCredential`: `az login` en local, Managed Identity desplegado) queda para el deploy;
-requiere el rol **Cognitive Services OpenAI User** en el recurso.
+Con `entra_id`, el agente usa `DefaultAzureCredential`: en local toma tu `az login` y desplegado, la Managed Identity.
+El token se renueva solo y no hay ningún secreto en `.env`. `entra_id` es también el valor por defecto en `settings.py`: si `FOUNDRY_AUTH_PROVIDER` no está definido, se usa Entra ID.
+La alternativa es para quien no pueda instalar Azure CLI. Se genera en el portal: Cloud Shell → `az account get-access-token --resource https://cognitiveservices.azure.com --query accessToken -o tsv`.
+Las keys fijas del recurso no vencen, así que no se usan en el workshop.
 
 ## Arranque
 
@@ -50,15 +55,22 @@ Terminal 2, el agente (con el `.env` tal cual sale de `.env.example`):
 uv run uvicorn agent.infrastructure.bootstrap:create_app --factory --reload
 ```
 
-### Sesión 2 · Foundry con api_key
+### Sesión 2 · Foundry con Entra ID
 
-Sin mock. En `.env` pon `FOUNDRY_ENDPOINT`, `FOUNDRY_DEPLOYMENT` y `FOUNDRY_API_KEY` de tu recurso, y arranca igual:
+Sin mock. Inicia sesión en Azure con el usuario que tiene el rol:
+
+```bash
+az login
+az account set --subscription "<suscripción del workshop>"
+```
+
+En `.env` pon `FOUNDRY_ENDPOINT`, `FOUNDRY_DEPLOYMENT` y `FOUNDRY_AUTH_PROVIDER=entra_id`, deja `FOUNDRY_API_KEY` vacío y arranca igual:
 
 ```bash
 uv run uvicorn agent.infrastructure.bootstrap:create_app --factory --reload
 ```
 
-La key solo vive en tu `.env` (no se versiona). No la pegues en el código, en el chat ni en un commit.
+Con el token temporal (`api_key`), el token solo vive en tu `.env`, que no se versiona. No lo pegues en el código, en el chat ni en un commit.
 
 ## Más adelante · contenedor y Azure
 
@@ -85,7 +97,7 @@ Agente contra Foundry real, con las variables de `.env`:
 docker run --rm -p 8000:8000 --env-file .env agent:local
 ```
 
-En un contenedor local no hay `az login`: usa `FOUNDRY_AUTH_PROVIDER=api_key`. `entra_id` aplica al desplegarlo con Managed Identity.
+En un contenedor local no hay `az login`: usa el token temporal con `FOUNDRY_AUTH_PROVIDER=api_key`. `entra_id` aplica al desplegarlo con Managed Identity.
 
 **Con el mock:** mock y agente en una red de Docker.
 
@@ -145,7 +157,7 @@ Si la variable `ACR_NAME` no está definida, solo corre **test**.
 
 | Contexto | Qué | Dónde | Quién lo define |
 |---|---|---|---|
-| Local | `FOUNDRY_*`, key de pruebas | `.env` (no se versiona) | cada participante |
+| Local | `FOUNDRY_*` (`entra_id` con `az login`, o token temporal) | `.env` (no se versiona) | cada participante |
 | CI | IDs para OIDC y nombres de recursos (no son secretos) | GitHub → Settings → Secrets and variables → Actions → **Variables** | plataforma, una vez |
 | Azure | configuración no secreta (`FOUNDRY_ENDPOINT`, …) | env vars de la Container App | el pipeline, en cada deploy |
 | Azure | **secretos** (p. ej. `FOUNDRY_API_KEY`) | **Key Vault** → secret de la Container App que referencia a Key Vault → env var `secretref:` | plataforma, una vez |
@@ -224,8 +236,8 @@ Busca los `TODO S1` / `TODO S2` en el código.
 - [ ] `infrastructure/api/`: `ChatRequest`, `ChatResponse` y `POST /chat`
 - [ ] `infrastructure/bootstrap.py`: conectar todo
 
-**S2 · contra Foundry con api_key** (tag `t1-s2`)
-- [ ] `.env` apuntando a tu recurso de Foundry; las 5 conversaciones contra el modelo real
+**S2 · contra Foundry con Entra ID** (tag `t1-s2`)
+- [ ] `az login` y `.env` con `entra_id` apuntando a tu recurso de Foundry; las 5 conversaciones contra el modelo real
 - [ ] Historial por sesión, sin guardar turnos fallidos
 - [ ] `domain/errors.py`: timeout, rate limit y salida inválida → HTTP 504 / 429 / 502
 - [ ] `Usage`: latencia y tokens por turno
@@ -240,7 +252,7 @@ Busca los `TODO S1` / `TODO S2` en el código.
 |---|---|
 | `main` | arquetipo con los `TODO`; punto de partida de todos |
 | `solution` | solución de referencia; avanza una sesión por commit |
-| `tN-sM` | fin de la sesión M del tema N: `t1-s1` (mock), `t1-s2` (Foundry api_key) |
+| `tN-sM` | fin de la sesión M del tema N: `t1-s1` (mock), `t1-s2` (Foundry con Entra ID) |
 | `tN-vX` | cierre del tema N: `t1-v0.1` = `t1-s2`; luego `t2-v0.2`, … |
 
 ```bash

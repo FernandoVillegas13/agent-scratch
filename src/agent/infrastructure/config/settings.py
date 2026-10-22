@@ -22,7 +22,7 @@ class FoundrySettings(_EnvSettings):
     model_config = SettingsConfigDict(env_prefix="FOUNDRY_")
 
     endpoint: str = ""
-    auth_provider: AuthProvider = AuthProvider.API_KEY
+    auth_provider: AuthProvider = AuthProvider.ENTRA_ID  # sesión 1 usa api_key contra el mock (.env.example)
     api_key: SecretStr = SecretStr("")
     deployment: str = "gpt-5-mini"
     timeout_s: float = Field(30, gt=0)
