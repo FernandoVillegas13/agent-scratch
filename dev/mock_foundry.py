@@ -16,10 +16,10 @@ from fastapi import FastAPI, Header, HTTPException, Request
 
 # ponytail: heurística naive por palabras clave, suficiente para probar el flujo
 RULES = [
-    ("accion_sensible", ("bloque", "robaron", "robo", "perdí", "registrar reclamo")),
-    ("consulta_datos", ("mis movimientos", "estado de mi reclamo", "estado del reclamo")),
-    ("consulta_producto", ("fraude", "contracargo", "plazo", "reclamo", "no reconozco")),
-    ("saludo", ("hola", "buenos", "buenas", "gracias", "adiós")),
+    ("sensitive_action", ("bloque", "robaron", "robo", "perdí", "registrar reclamo")),
+    ("data_query", ("mis movimientos", "estado de mi reclamo", "estado del reclamo")),
+    ("product_question", ("fraude", "contracargo", "plazo", "reclamo", "no reconozco")),
+    ("greeting", ("hola", "buenos", "buenas", "gracias", "adiós")),
 ]
 
 app = FastAPI(title="mock-foundry")
@@ -32,7 +32,7 @@ async def chat_completions(request: Request, authorization: str = Header(default
 
     body = await request.json()
     text = body["messages"][-1]["content"].lower()
-    intent = next((i for i, words in RULES if any(w in text for w in words)), "fuera_de_alcance")
+    intent = next((i for i, words in RULES if any(w in text for w in words)), "out_of_scope")
     content = json.dumps({"intent": intent, "answer": f"[mock] intención detectada: {intent}"}, ensure_ascii=False)
     prompt_tokens = sum(len(str(m["content"]).split()) for m in body["messages"])
     completion_tokens = len(content.split())

@@ -5,11 +5,11 @@ Message = dict[str, Any]  # formato OpenAI: {"role": "system" | "user" | "assist
 
 
 class Intent(StrEnum):
-    CONSULTA_PRODUCTO = "consulta_producto"  # T2: RAG
-    CONSULTA_DATOS = "consulta_datos"  # T3: tool MCP
-    ACCION_SENSIBLE = "accion_sensible"  # T3: HITL
-    SALUDO = "saludo"
-    FUERA_DE_ALCANCE = "fuera_de_alcance"
+    PRODUCT_QUESTION = "product_question"  # T2: RAG
+    DATA_QUERY = "data_query"  # T3: tool MCP
+    SENSITIVE_ACTION = "sensitive_action"  # T3: HITL
+    GREETING = "greeting"
+    OUT_OF_SCOPE = "out_of_scope"
 
 
 # TODO S1: AgentReply (pydantic.BaseModel), contrato del structured output.
