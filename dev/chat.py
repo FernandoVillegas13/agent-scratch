@@ -36,7 +36,7 @@ def show(status: int, reply: dict) -> str | None:
         return reply["session_id"]
     detail = reply.get("detail")
     if isinstance(detail, list):  # 422: FastAPI explica qué campo no pasó la validación
-        detail = "; ".join(d.get("msg", str(d)) for d in detail)
+        detail = "; ".join(problem.get("msg", str(problem)) for problem in detail)
     kind = f" ({reply['error']})" if reply.get("error") else ""
     print(f"  Error {status}{kind}: {detail}")
     return None

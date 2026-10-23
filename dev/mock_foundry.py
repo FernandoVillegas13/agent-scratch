@@ -32,9 +32,9 @@ async def chat_completions(request: Request, authorization: str = Header(default
 
     body = await request.json()
     text = body["messages"][-1]["content"].lower()
-    intent = next((i for i, words in RULES if any(w in text for w in words)), "out_of_scope")
+    intent = next((name for name, words in RULES if any(word in text for word in words)), "out_of_scope")
     content = json.dumps({"intent": intent, "answer": f"[mock] intención detectada: {intent}"}, ensure_ascii=False)
-    prompt_tokens = sum(len(str(m["content"]).split()) for m in body["messages"])
+    prompt_tokens = sum(len(str(message["content"]).split()) for message in body["messages"])
     completion_tokens = len(content.split())
     return {
         "id": f"mock-{uuid4().hex[:8]}",

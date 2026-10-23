@@ -12,7 +12,7 @@ Un agente que atiende a los clientes del banco por consola y por API:
 - **Actúa (T3):** consulta datos con tools MCP y ejecuta la acción sensible de su dominio solo con aprobación humana.
 - **Opera (T4):** desplegado en Azure, observable, evaluado y protegido.
 
-Dominios: `fraude`, `tarifario`, `tarjetas`, `prestamos` y `atencion` (variable `DOMAIN`).
+Dominios: `fraud`, `fees`, `cards`, `loans` y `support` (variable `DOMAIN`).
 
 ## En qué va
 
